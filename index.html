@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -205,39 +205,39 @@
     <div id="setup-area">
         <h1>LyricSyncher</h1>
         <div class="input-group">
-            <label>1. Carica traccia musicale</label>
+            <label>1. Upload audio track</label>
             <input type="file" id="audio-input" accept="audio/*">
         </div>
         <div class="input-group">
-            <label>2. Incolla il testo (diviso in versi)</label>
-            <textarea id="lyrics-input" placeholder="Incolla qui... ogni riga sarà considerata un verso diverso."></textarea>
+            <label>2. Paste the lyrics (divided by lines)</label>
+            <textarea id="lyrics-input" placeholder="Paste here... each line will be considered a different verse."></textarea>
         </div>
-        <button id="start-sync-btn">Inizia Sincronizzazione</button>
+        <button id="start-sync-btn">Start Synchronization</button>
     </div>
 
     <div id="sync-workspace">
-        <div class="progress" id="progress-indicator">Parola 0 di 0</div>
+        <div class="progress" id="progress-indicator">Word 0 of 0</div>
         
         <div class="word-box">
-            <div class="next-label">Tocca quando senti:</div>
+            <div class="next-label">Tap when you hear:</div>
             <div class="current-word" id="active-word">-</div>
         </div>
 
-        <div id="touch-pad" class="touch-pad">TOCCA (SYNC)</div>
+        <div id="touch-pad" class="touch-pad">TAP (SYNC)</div>
         
         <div class="control-rows">
-            <button id="undo-btn" class="btn-undo">↩ Annulla</button>
-            <button id="skip-btn" class="btn-secondary">Salta Parola ➡</button>
+            <button id="undo-btn" class="btn-undo">↩ Undo</button>
+            <button id="skip-btn" class="btn-secondary">Skip Word ➡</button>
         </div>
 
         <audio id="audio-player" controls></audio>
     </div>
 
     <div id="result-area">
-        <h1>Lyrics Sincronizzate!</h1>
+        <h1>Lyrics Synchronized!</h1>
         <pre id="output-lyrics"></pre>
-        <button id="copy-btn" style="margin-bottom: 10px;">📋 Copia Testo</button>
-        <button id="restart-btn" class="btn-secondary">Sincronizza di Nuovo</button>
+        <button id="copy-btn" style="margin-bottom: 10px;">📋 Copy Text</button>
+        <button id="restart-btn" class="btn-secondary">Synchronize Again</button>
     </div>
 </div>
 
@@ -277,7 +277,7 @@
         const file = audioInput.files[0];
 
         if (!file || !text) {
-            alert("Inserisci sia il file audio che il testo!");
+            alert("Enter both the audio file and the text!");
             return;
         }
 
@@ -322,7 +322,7 @@
 
         const currentItem = wordsQueue[currentWordIndex];
         activeWordSpan.textContent = currentItem.word;
-        progressIndicator.textContent = `Parola ${currentWordIndex + 1} di ${wordsQueue.length}`;
+        progressIndicator.textContent = `Word ${currentWordIndex + 1} of ${wordsQueue.length}`;
         
         // Disabilita undo se siamo alla prima parola
         undoBtn.disabled = currentWordIndex === 0;
@@ -403,7 +403,7 @@
     copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(formattedResult).then(() => {
             const origText = copyBtn.textContent;
-            copyBtn.textContent = "✓ Copiato negli appunti!";
+            copyBtn.textContent = "✓ Copied to clipboard!";
             setTimeout(() => copyBtn.textContent = origText, 2000);
         });
     });
