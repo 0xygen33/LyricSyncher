@@ -3,37 +3,487 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile Word Sync</title>
+    <title>Perfect Mobile Word Sync</title>
     <style>
         :root {
-            --bg-color: #0b0b0e;
-            --container-bg: #16161a;
-            --accent-color: #30dac5;
-            --error-color: #ff5c5c;
-            --text-color: #ffffff;
-            --text-muted: #94a3b8;
+            --bg-color: #0f172a;
+            --container-bg: #1e293b;
+            --accent-color: #22c55e;
+            --highlight-color: #eab308;
+            --text-color: #f8fafc;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 15px;
-            min-height: 100vh;
+            padding: 0;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
+            overflow: hidden;
         }
 
-        .container {
-            width: 100%;
-            max-width: 500px;
-            margin: auto;
-            background: var(--container-bg);
+        /* Schermata Iniziale di Setup */
+        #setup-area {
             padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow-y: auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 22px;
+            text-align: center;
+            color: var(--accent-color);
+            margin: 10px 0;
+        }
+
+        label {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            flex-grow: 1;
+            min-height: 200px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: none;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            background: #334155;
+            border-radius: 10px;
+            color: white;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* WORKSPACE DI SINCRONIZZAZIONE (Layout diviso in due) */
+        #sync-workspace {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        /* Sezione Superiore: Il Testo che scorre */
+        .lyrics-viewer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #090d16;
+            text-align: center;
+            font-size: 20px;
+            line-height: 1.6;
+            scroll-behavior: smooth;
+        }
+
+        .word-token {
+            display: inline-block;
+            margin: 0 4px;
+            color: var(--text-color);
+            transition: all 0.1s ease;
+        }
+
+        .word-token.passed {
+            color: #334155;
+        }
+
+        .word-token.active {
+            color: var(--highlight-color);
+            font-weight: bold;
+            transform: scale(1.15);
+            background: rgba(234, 179, 8, 0.15);
+            border-radius: 4px;
+            padding: 0 4px;
+        }
+
+        .line-break {
+            display: block;
+            margin-top: 12px;
+            height: 0;
+        }
+
+        /* Sezione Inferiore: Controlli e Touch Pad */
+        .control-panel {
+            background: var(--container-bg);
+            padding: 15px;
+            border-top: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .touch-pad {
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(135deg, #22c55e, #10b981);
+            color: black;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 800;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .touch-pad:active {
+            transform: scale(0.98);
+            filter: brightness(0.9);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: white;
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        .btn-undo {
+            background: #422020;
+            color: #ef4444;
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        audio {
+            width: 100%;
+            height: 32px;
+        }
+
+        /* Schermata Risultato */
+        #result-area {
+            display: none;
+            padding: 20px;
+            height: 100%;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        pre {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 10px;
+            overflow: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 13px;
+            border: 1px solid #334155;
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-area">
+        <h1>Lyrics Sync (Mobile Perfect)</h1>
+        <label>Seleziona la traccia Audio:</label>
+        <input type="file" id="audio-input" accept="audio/*">
+        
+        <label>Incolla il Testo (diviso in versi):</label>
+        <textarea id="lyrics-input" placeholder="Incolla il testo qui..."></textarea>
+        
+        <button id="start-sync-btn">Carica e Comincia</button>
+    </div>
+
+    <div id="sync-workspace">
+        <div class="lyrics-viewer" id="lyrics-viewer"></div>
+
+        <div class="control-panel">
+            <div class="status-bar">
+                <span id="progress-indicator">Parola 0 di 0</span>
+                <span id="audio-time">00:00</span>
+            </div>
+
+            <div id="touch-pad" class="touch-pad">TAP / SPAZIO</div>
+
+            <div class="button-row">
+                <button id="undo-btn" class="btn-undo">↩ Annulla</button>
+                <button id="skip-btn" class="btn-secondary">Salta Parola ➡</button>
+            </div>
+
+            <audio id="audio-player" controls></audio>
+        </div>
+    </div>
+
+    <div id="result-area">
+        <h1>Testo Sincronizzato!</h1>
+        <pre id="output-lyrics"></pre>
+        <button id="copy-btn">📋 Copia negli Appunti</button>
+        <button id="restart-btn" style="background:#334155; color:white;">Ricomincia</button>
+    </div>
+
+<script>
+    let originalLines = [];
+    let wordsQueue = [];
+    let currentWordIndex = 0;
+    let formattedResult = "";
+
+    const audioInput = document.getElementById('audio-input');
+    const lyricsInput = document.getElementById('lyrics-input');
+    const startSyncBtn = document.getElementById('start-sync-btn');
+    const setupArea = document.getElementById('setup-area');
+    
+    const syncWorkspace = document.getElementById('sync-workspace');
+    const lyricsViewer = document.getElementById('lyrics-viewer');
+    const audioPlayer = document.getElementById('audio-player');
+    const progressIndicator = document.getElementById('progress-indicator');
+    const audioTime = document.getElementById('audio-time');
+    const touchPad = document.getElementById('touch-pad');
+    const undoBtn = document.getElementById('undo-btn');
+    const skipBtn = document.getElementById('skip-btn');
+    
+    const resultArea = document.getElementById('result-area');
+    const outputLyrics = document.getElementById('output-lyrics');
+    const copyBtn = document.getElementById('copy-btn');
+    const restartBtn = document.getElementById('restart-btn');
+
+    function formatTime(seconds) {
+        const min = Math.floor(seconds / 60);
+        const sec = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds % 1) * 1000);
+        return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+    }
+
+    // Aggiorna il timer dell'audio nell'interfaccia
+    audioPlayer.addEventListener('timeupdate', () => {
+        const min = Math.floor(audioPlayer.currentTime / 60);
+        const sec = Math.floor(audioPlayer.currentTime % 60);
+        audioTime.textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    });
+
+    startSyncBtn.addEventListener('click', () => {
+        const text = lyricsInput.value.trim();
+        const file = audioInput.files[0];
+
+        if (!file || !text) {
+            alert("Per favore carica sia l'audio che il testo!");
+            return;
+        }
+
+        audioPlayer.src = URL.createObjectURL(file);
+        originalLines = text.split('\n');
+        wordsQueue = [];
+        currentWordIndex = 0;
+
+        // Pulisce il visualizzatore di testo
+        lyricsViewer.innerHTML = "";
+
+        let globalWordCounter = 0;
+
+        originalLines.forEach((line, lineIndex) => {
+            const trimmedLine = line.trim();
+            if (trimmedLine === "") {
+                wordsQueue.push({ word: "", isLineStart: false, isEmptyLine: true, lineIndex });
+                const br = document.createElement('div');
+                br.className = 'line-break';
+                lyricsViewer.appendChild(br);
+                return;
+            }
+
+            const words = trimmedLine.split(/\s+/);
+            words.forEach((word, wordIndex) => {
+                // Crea l'elemento visivo (Token) per ogni parola nel Gobbo
+                const span = document.createElement('span');
+                span.className = 'word-token';
+                span.textContent = word;
+                span.id = `word-tk-${globalWordCounter}`;
+                lyricsViewer.appendChild(span);
+
+                wordsQueue.push({
+                    word: word,
+                    isLineStart: wordIndex === 0,
+                    isEmptyLine: false,
+                    lineIndex: lineIndex,
+                    timestamp: null,
+                    domId: `word-tk-${globalWordCounter}`
+                });
+
+                globalWordCounter++;
+            });
+
+            // Va a capo nel visualizzatore alla fine di ogni verso
+            const br = document.createElement('div');
+            br.className = 'line-break';
+            lyricsViewer.appendChild(br);
+        });
+
+        setupArea.style.display = 'none';
+        syncWorkspace.style.display = 'flex';
+        updateWorkspace();
+    });
+
+    function updateWorkspace() {
+        // Salta le righe vuote automatiche
+        while (currentWordIndex < wordsQueue.length && wordsQueue[currentWordIndex].isEmptyLine) {
+            currentWordIndex++;
+        }
+
+        // Controllo fine testo
+        if (currentWordIndex >= wordsQueue.length) {
+            finishSynchronization();
+            return;
+        }
+
+        progressIndicator.textContent = `Parola ${currentWordIndex + 1} di ${wordsQueue.length}`;
+        undoBtn.disabled = currentWordIndex === 0;
+
+        // Aggiorna lo stato grafico di tutte le parole nel visualizzatore
+        wordsQueue.forEach((item, index) => {
+            if (item.isEmptyLine) return;
+            const el = document.getElementById(item.domId);
+            if (!el) return;
+
+            if (index < currentWordIndex) {
+                el.className = 'word-token passed';
+            } else if (index === currentWordIndex) {
+                el.className = 'word-token active';
+                // Auto-scroll automatico per tenere la parola corrente al centro del display
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                el.className = 'word-token';
+            }
+        });
+    }
+
+    function handleSync() {
+        if (audioPlayer.paused) audioPlayer.play();
+        if (currentWordIndex >= wordsQueue.length) return;
+
+        wordsQueue[currentWordIndex].timestamp = audioPlayer.currentTime;
+        currentWordIndex++;
+        updateWorkspace();
+    }
+
+    // Input touch-pad reattivo per mobile
+    touchPad.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleSync();
+    });
+    // Fallback per PC / Mouse
+    touchPad.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        if (!('ontouchstart' in window)) handleSync();
+    });
+    // Supporto barra spaziatrice
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && syncWorkspace.style.display === 'flex') {
+            e.preventDefault();
+            handleSync();
+        }
+    });
+
+    // Tasto Annulla
+    undoBtn.addEventListener('click', () => {
+        if (currentWordIndex > 0) {
+            currentWordIndex--;
+            while (currentWordIndex > 0 && wordsQueue[currentWordIndex].isEmptyLine) {
+                currentWordIndex--;
+            }
+            wordsQueue[currentWordIndex].timestamp = null;
+            updateWorkspace();
+        }
+    });
+
+    // Tasto Salta Parola
+    skipBtn.addEventListener('click', () => {
+        if (currentWordIndex < wordsQueue.length) {
+            wordsQueue[currentWordIndex].timestamp = currentWordIndex > 0 ? wordsQueue[currentWordIndex-1].timestamp : 0;
+            currentWordIndex++;
+            updateWorkspace();
+        }
+    });
+
+    function finishSynchronization() {
+        audioPlayer.pause();
+        syncWorkspace.style.display = 'none';
+        resultArea.style.display = 'flex';
+
+        let outputText = "";
+        let currentLineIndex = -1;
+
+        wordsQueue.forEach((item) => {
+            if (item.isEmptyLine) {
+                outputText += "\n";
+                return;
+            }
+
+            const timeStr = formatTime(item.timestamp || 0);
+
+            if (item.isLineStart) {
+                if (currentLineIndex !== -1) outputText += "\n";
+                currentLineIndex = item.lineIndex;
+                outputText += `[${timeStr}]`;
+            }
+
+            outputText += `<${timeStr}>${item.word} `;
+        });
+
+        formattedResult = outputText.split('\n').map(line => line.trimEnd()).join('\n');
+        outputLyrics.textContent = formattedResult;
+    }
+
+    copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(formattedResult).then(() => {
+            const orig = copyBtn.textContent;
+            copyBtn.textContent = "✓ Copiato!";
+            setTimeout(() => copyBtn.textContent = orig, 2000);
+        });
+    });
+
+    restartBtn.addEventListener('click', () => {
+        resultArea.style.display = 'none';
+        setupArea.style.display = 'flex';
+        lyricsInput.value = "";
+        audioInput.value = "";
+    });
+</script>
+</body>
+</html>
             box-sizing: border-box;
         }
 
