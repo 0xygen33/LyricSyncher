@@ -1,0 +1,393 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word-by-Word Lyrics Synchronizer</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --accent-color: #1db954;
+            --text-color: #ffffff;
+            --text-muted: #b3b3b3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--accent-color);
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            background: #2a2a2a;
+            border: 1px solid #3e3e3e;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            resize: vertical;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 15px 0;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: black;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #1ed760;
+            transform: scale(1.02);
+        }
+
+        button:disabled {
+            background-color: #4a4a4a;
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        /* Sync Area */
+        #sync-workspace {
+            display: none;
+            text-align: center;
+        }
+
+        .word-display {
+            font-size: 28px;
+            margin: 20px 0;
+            min-height: 40px;
+            font-weight: bold;
+        }
+
+        .current-word {
+            color: var(--accent-color);
+            font-size: 40px;
+            display: block;
+            margin-top: 10px;
+        }
+
+        .tap-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            color: black;
+            font-size: 22px;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(29, 185, 84, 0.4);
+            user-select: none;
+        }
+
+        .tap-btn:active {
+            transform: scale(0.95);
+            background-color: #1ed760;
+        }
+
+        .progress-text {
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        /* Result Area */
+        #result-area {
+            display: none;
+        }
+
+        pre {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #3e3e3e;
+            max-height: 300px;
+        }
+
+        .flex-space {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Word Sync Lyrics Creator</h1>
+
+    <!-- STEP 1: Importazione dati -->
+    <div id="setup-area" class="section">
+        <h2>1. Carica File Audio e Testo</h2>
+        <label for="audio-input">Seleziona la traccia audio:</label>
+        <input type="file" id="audio-input" accept="audio/*">
+        
+        <label for="lyrics-input">Incolla il testo originale (diviso in versi/righe):</label>
+        <textarea id="lyrics-input" placeholder="Incolla qui il testo della canzone... Se hai versi vuoti o spazi lasciali pure, l'app manterrà la struttura originale delle righe."></textarea>
+        
+        <button id="start-sync-btn" style="margin-top: 15px; width: 100%;">Avvia Sincronizzazione</button>
+    </div>
+
+    <!-- STEP 2: Workspace di Sincronizzazione -->
+    <div id="sync-workspace" class="section">
+        <h2>2. Sincronizzazione in tempo reale</h2>
+        <div class="progress-text" id="progress-indicator">Parola 0 di 0</div>
+        
+        <div class="word-display">
+            <span style="color: var(--text-muted); font-size: 16px;">PROSSIMA PAROLA:</span>
+            <span class="current-word" id="active-word">-</span>
+        </div>
+
+        <div id="tap-trigger" class="tap-btn">SINC (SPAZIO)</div>
+        <p style="color: var(--text-muted); font-size: 14px;">Premi il cerchio o la barra <strong>SPAZIO</strong> sulla tastiera ogni volta che senti la parola evidenziata.</p>
+        
+        <audio id="audio-player" controls></audio>
+    </div>
+
+    <!-- STEP 3: Output Finale -->
+    <div id="result-area" class="section">
+        <div class="flex-space">
+            <h2>3. Testo Sincronizzato Pronto</h2>
+            <button id="copy-btn">Copia Testo</button>
+        </div>
+        <pre id="output-lyrics"></pre>
+    </div>
+</div>
+
+<script>
+    // Variabili di stato dell'applicazione
+    let originalLines = [];
+    let wordsQueue = [];
+    let currentWordIndex = 0;
+    let formattedResult = "";
+    
+    // Elementi DOM
+    const audioInput = document.getElementById('audio-input');
+    const lyricsInput = document.getElementById('lyrics-input');
+    const startSyncBtn = document.getElementById('start-sync-btn');
+    const setupArea = document.getElementById('setup-area');
+    
+    const syncWorkspace = document.getElementById('sync-workspace');
+    const audioPlayer = document.getElementById('audio-player');
+    const activeWordSpan = document.getElementById('active-word');
+    const progressIndicator = document.getElementById('progress-indicator');
+    const tapTrigger = document.getElementById('tap-trigger');
+    
+    const resultArea = document.getElementById('result-area');
+    const outputLyrics = document.getElementById('output-lyrics');
+    const copyBtn = document.getElementById('copy-btn');
+
+    // Funzione per formattare il tempo come richiesto [mm:ss.mmm] e <mm:ss.mmm>
+    function formatTime(seconds) {
+        const min = Math.floor(seconds / 60);
+        const sec = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds % 1) * 1000);
+        
+        const minStr = String(min).padStart(2, '0');
+        const secStr = String(sec).padStart(2, '0');
+        const msStr = String(ms).padStart(3, '0');
+        
+        return `${minStr}:${secStr}.${msStr}`;
+    }
+
+    // Gestore avvio sincronizzazione
+    startSyncBtn.addEventListener('click', () => {
+        const text = lyricsInput.value.trim();
+        const file = audioInput.files[0];
+
+        if (!file) {
+            alert("Per favore, seleziona prima un file audio.");
+            return;
+        }
+        if (!text) {
+            alert("Per favore, inserisci il testo della canzone.");
+            return;
+        }
+
+        // Imposta la sorgente audio
+        audioPlayer.src = URL.createObjectURL(file);
+
+        // Prepara la struttura dati mantenendo traccia dei versi originali
+        originalLines = text.split('\n');
+        wordsQueue = [];
+        currentWordIndex = 0;
+
+        originalLines.forEach((line, lineIndex) => {
+            // Divide la riga in parole mantenendo gli spazi
+            const trimmedLine = line.trim();
+            if (trimmedLine === "") {
+                // Gestione righe vuote
+                wordsQueue.push({ word: "", isLineStart: false, isLineEnd: false, isEmptyLine: true, lineIndex });
+                return;
+            }
+            
+            const words = trimmedLine.split(/\s+/);
+            words.forEach((word, wordIndex) => {
+                wordsQueue.push({
+                    word: word,
+                    isLineStart: wordIndex === 0,
+                    isLineEnd: wordIndex === words.length - 1,
+                    isEmptyLine: false,
+                    lineIndex: lineIndex,
+                    timestamp: null
+                });
+            });
+        });
+
+        // Mostra area di sincronizzazione
+        setupArea.style.display = 'none';
+        syncWorkspace.style.display = 'block';
+        
+        updateWorkspace();
+    </script>
+         <script> precedente:
+        updateWorkspace();
+    });
+
+    // Aggiorna l'interfaccia di sincronizzazione
+    function updateWorkspace() {
+        // Salta eventuali righe vuote nella coda automatica
+        while (currentWordIndex < wordsQueue.length && wordsQueue[currentWordIndex].isEmptyLine) {
+            currentWordIndex++;
+        }
+
+        if (currentWordIndex >= wordsQueue.length) {
+            finishSynchronization();
+            return;
+        }
+
+        const currentItem = wordsQueue[currentWordIndex];
+        activeWordSpan.textContent = currentItem.word;
+        progressIndicator.textContent = `Parola ${currentWordIndex + 1} di ${wordsQueue.length} (Verso originale riga: ${currentItem.lineIndex + 1})`;
+    }
+
+    // Registra il timestamp quando viene premuto il trigger
+    function handleSyncTap() {
+        if (audioPlayer.paused) {
+            audioPlayer.play(); // Avvia l'audio al primo tap per comodità se fermo
+        }
+
+        if (currentWordIndex >= wordsQueue.length) return;
+
+        const currentTime = audioPlayer.currentTime;
+        wordsQueue[currentWordIndex].timestamp = currentTime;
+
+        currentWordIndex++;
+        updateWorkspace();
+    }
+
+    // Eventi di trigger (Tasto visivo e Barra Spaziatrice)
+    tapTrigger.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        handleSyncTap();
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && syncWorkspace.style.display === 'block') {
+            // Impedisce lo scrolling della pagina con la barra spazio
+            e.preventDefault(); 
+            handleSyncTap();
+        }
+    });
+
+    // Genera l'output formattato come richiesto
+    function finishSynchronization() {
+        audioPlayer.pause();
+        syncWorkspace.style.display = 'none';
+        resultArea.style.display = 'block';
+
+        let outputText = "";
+        let currentLineIndex = -1;
+
+        wordsQueue.forEach((item) => {
+            if (item.isEmptyLine) {
+                outputText += "\n";
+                return;
+            }
+
+            const timeStr = formatTime(item.timestamp);
+
+            if (item.isLineStart) {
+                // Se è un nuovo verso inserisce a capo (tranne che per la prima riga assoluta)
+                if (currentLineIndex !== -1) {
+                    outputText += "\n";
+                }
+                currentLineIndex = item.lineIndex;
+                // Formato verso: [00:00.000]
+                outputText += `[${timeStr}]`;
+            }
+
+            // Formato parola: <00:00.000>Parola
+            outputText += `<${timeStr}>${item.word} `;
+        });
+
+        // Pulisce gli spazi finali su ogni riga prima di mostrare il risultato
+        formattedResult = outputText.split('\n').map(line => line.trimEnd()).join('\n');
+        outputLyrics.textContent = formattedResult;
+    }
+
+    // Copia negli appunti
+    copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(formattedResult).then(() => {
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = "Copiato!";
+            copyBtn.style.backgroundColor = "#ffffff";
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.style.backgroundColor = "var(--accent-color)";
+            }, 2000);
+        });
+    });
+</body>
+</html>
+
