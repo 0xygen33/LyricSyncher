@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Word Sync</title>
+    <style>
+        :root {
+            --bg-color: #0b0b0e;
+            --container-bg: #16161a;
+            --accent-color: #30dac5;
+            --error-color: #ff5c5c;
+            --text-color: #ffffff;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            margin: auto;
+            background: var(--container-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            color: var(--accent-color);
+            margin-top: 0;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            background: #222227;
+            border: 1px solid #3f3f46;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            background: #222227;
+            border-radius: 10px;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--accent-color);
+            color: #000000;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        /* Schermata di Sincronizzazione Mobile */
+        #sync-workspace {
+            display: none;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        .word-box {
+            background: #222227;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            min-height: 90px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: 1px solid #3f3f46;
+        }
+
+        .next-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .current-word {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--accent-color);
+            word-break: break-word;
+        }
+
+        /* Area Touch Gigante per il Pollice */
+        .touch-pad {
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(135deg, var(--accent-color), #14b8a6);
+            color: black;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 8px 25px rgba(48, 218, 197, 0.3);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .touch-pad:active {
+            transform: scale(0.98);
+            filter: brightness(0.9);
+        }
+
+        .control-rows {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-secondary {
+            background-color: #222227;
+            color: white;
+            border: 1px solid #3f3f46;
+        }
+        
+        .btn-undo {
+            background-color: #271c1c;
+            color: var(--error-color);
+            border: 1px solid #451a1a;
+        }
+
+        /* Schermata Risultato */
+        #result-area {
+            display: none;
+        }
+
+        pre {
+            background: #222227;
+            padding: 15px;
+            border-radius: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 13px;
+            border: 1px solid #3f3f46;
+            max-height: 250px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="setup-area">
+        <h1>Word Sync (Mobile)</h1>
+        <div class="input-group">
+            <label>1. Carica traccia musicale</label>
+            <input type="file" id="audio-input" accept="audio/*">
+        </div>
+        <div class="input-group">
+            <label>2. Incolla il testo (diviso in versi)</label>
+            <textarea id="lyrics-input" placeholder="Incolla qui... ogni riga sarà considerata un verso diverso."></textarea>
+        </div>
+        <button id="start-sync-btn">Inizia Sincronizzazione</button>
+    </div>
+
+    <div id="sync-workspace">
+        <div class="progress" id="progress-indicator">Parola 0 di 0</div>
+        
+        <div class="word-box">
+            <div class="next-label">Tocca quando senti:</div>
+            <div class="current-word" id="active-word">-</div>
+        </div>
+
+        <div id="touch-pad" class="touch-pad">TOCCA (SYNC)</div>
+        
+        <div class="control-rows">
+            <button id="undo-btn" class="btn-undo">↩ Annulla</button>
+            <button id="skip-btn" class="btn-secondary">Salta Parola ➡</button>
+        </div>
+
+        <audio id="audio-player" controls></audio>
+    </div>
+
+    <div id="result-area">
+        <h1>Lyrics Sincronizzate!</h1>
+        <pre id="output-lyrics"></pre>
+        <button id="copy-btn" style="margin-bottom: 10px;">📋 Copia Testo</button>
+        <button id="restart-btn" class="btn-secondary">Sincronizza di Nuovo</button>
+    </div>
+</div>
+
+<script>
+    let originalLines = [];
+    let wordsQueue = [];
+    let currentWordIndex = 0;
+    let formattedResult = "";
+    
+    const audioInput = document.getElementById('audio-input');
+    const lyricsInput = document.getElementById('lyrics-input');
+    const startSyncBtn = document.getElementById('start-sync-btn');
+    const setupArea = document.getElementById('setup-area');
+    
+    const syncWorkspace = document.getElementById('sync-workspace');
+    const audioPlayer = document.getElementById('audio-player');
+    const activeWordSpan = document.getElementById('active-word');
+    const progressIndicator = document.getElementById('progress-indicator');
+    const touchPad = document.getElementById('touch-pad');
+    const undoBtn = document.getElementById('undo-btn');
+    const skipBtn = document.getElementById('skip-btn');
+    
+    const resultArea = document.getElementById('result-area');
+    const outputLyrics = document.getElementById('output-lyrics');
+    const copyBtn = document.getElementById('copy-btn');
+    const restartBtn = document.getElementById('restart-btn');
+
+    function formatTime(seconds) {
+        const min = Math.floor(seconds / 60);
+        const sec = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds % 1) * 1000);
+        return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+    }
+
+    startSyncBtn.addEventListener('click', () => {
+        const text = lyricsInput.value.trim();
+        const file = audioInput.files[0];
+
+        if (!file || !text) {
+            alert("Inserisci sia il file audio che il testo!");
+            return;
+        }
+
+        audioPlayer.src = URL.createObjectURL(file);
+        originalLines = text.split('\n');
+        wordsQueue = [];
+        currentWordIndex = 0;
+
+        originalLines.forEach((line, lineIndex) => {
+            const trimmedLine = line.trim();
+            if (trimmedLine === "") {
+                wordsQueue.push({ word: "", isLineStart: false, isEmptyLine: true, lineIndex });
+                return;
+            }
+            
+            const words = trimmedLine.split(/\s+/);
+            words.forEach((word, wordIndex) => {
+                wordsQueue.push({
+                    word: word,
+                    isLineStart: wordIndex === 0,
+                    isEmptyLine: false,
+                    lineIndex: lineIndex,
+                    timestamp: null
+                });
+            });
+        });
+
+        setupArea.style.display = 'none';
+        syncWorkspace.style.display = 'block';
+        updateWorkspace();
+    });
+
+    function updateWorkspace() {
+        while (currentWordIndex < wordsQueue.length && wordsQueue[currentWordIndex].isEmptyLine) {
+            currentWordIndex++;
+        }
+
+        if (currentWordIndex >= wordsQueue.length) {
+            finishSynchronization();
+            return;
+        }
+
+        const currentItem = wordsQueue[currentWordIndex];
+        activeWordSpan.textContent = currentItem.word;
+        progressIndicator.textContent = `Parola ${currentWordIndex + 1} di ${wordsQueue.length}`;
+        
+        // Disabilita undo se siamo alla prima parola
+        undoBtn.disabled = currentWordIndex === 0;
+    }
+
+    function handleSync() {
+        if (audioPlayer.paused) audioPlayer.play();
+        if (currentWordIndex >= wordsQueue.length) return;
+
+        wordsQueue[currentWordIndex].timestamp = audioPlayer.currentTime;
+        currentWordIndex++;
+        updateWorkspace();
+    }
+
+    // Evento ottimizzato per il touch mobile (evita il lag dei 300ms dei vecchi browser)
+    touchPad.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleSync();
+    });
+    // Supporto anche se testato da PC
+    touchPad.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        if (!('ontouchstart' in window)) handleSync();
+    });
+
+    // Tasto ANNULLA (Torna indietro di una parola)
+    undoBtn.addEventListener('click', () => {
+        if (currentWordIndex > 0) {
+            currentWordIndex--;
+            // Se incontra righe vuote nel tornare indietro, le salta
+            while (currentWordIndex > 0 && wordsQueue[currentWordIndex].isEmptyLine) {
+                currentWordIndex--;
+            }
+            wordsQueue[currentWordIndex].timestamp = null;
+            updateWorkspace();
+        }
+    });
+
+    // Tasto SALTA (Per parole che non vengono cantate)
+    skipBtn.addEventListener('click', () => {
+        if (currentWordIndex < wordsQueue.length) {
+            wordsQueue[currentWordIndex].timestamp = currentWordIndex > 0 ? wordsQueue[currentWordIndex-1].timestamp : 0;
+            currentWordIndex++;
+            updateWorkspace();
+        }
+    });
+
+    function finishSynchronization() {
+        audioPlayer.pause();
+        syncWorkspace.style.display = 'none';
+        resultArea.style.display = 'block';
+
+        let outputText = "";
+        let currentLineIndex = -1;
+
+        wordsQueue.forEach((item) => {
+            if (item.isEmptyLine) {
+                outputText += "\n";
+                return;
+            }
+
+            // Se l'utente ha saltato o non ha registrato il tempo, usa 0
+            const timeStr = formatTime(item.timestamp || 0);
+
+            if (item.isLineStart) {
+                if (currentLineIndex !== -1) outputText += "\n";
+                currentLineIndex = item.lineIndex;
+                outputText += `[${timeStr}]`;
+            }
+
+            outputText += `<${timeStr}>${item.word} `;
+        });
+
+        formattedResult = outputText.split('\n').map(line => line.trimEnd()).join('\n');
+        outputLyrics.textContent = formattedResult;
+    }
+
+    copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(formattedResult).then(() => {
+            const origText = copyBtn.textContent;
+            copyBtn.textContent = "✓ Copiato negli appunti!";
+            setTimeout(() => copyBtn.textContent = origText, 2000);
+        });
+    });
+
+    restartBtn.addEventListener('click', () => {
+        resultArea.style.display = 'none';
+        setupArea.style.display = 'block';
+        lyricsInput.value = "";
+        audioInput.value = "";
+    });
+</script>
+</body>
+</html>
