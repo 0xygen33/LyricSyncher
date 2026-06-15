@@ -1,261 +1,281 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LyricSyncher</title>
+    <title>Perfect Mobile Word Sync</title>
     <style>
         :root {
-            --bg-color: #0b0b0e;
-            --container-bg: #16161a;
-            --accent-color: #30dac5;
-            --error-color: #ff5c5c;
-            --text-color: #ffffff;
-            --text-muted: #94a3b8;
+            --bg-color: #0f172a;
+            --container-bg: #1e293b;
+            --accent-color: #22c55e;
+            --highlight-color: #eab308;
+            --text-color: #f8fafc;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 15px;
-            min-height: 100vh;
+            padding: 0;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
+            overflow: hidden;
         }
 
-        .container {
-            width: 100%;
-            max-width: 500px;
-            margin: auto;
-            background: var(--container-bg);
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            box-sizing: border-box;
+        /* 1. SETUP INITIAL SCREEN */
+        #setup-area {
+            padding: 24px;
+            overflow-y: auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 28px;
             text-align: center;
             color: var(--accent-color);
-            margin-top: 0;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
+            margin: 10px 0;
         }
 
         label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
+            font-size: 18px;
             color: var(--text-muted);
+            font-weight: bold;
         }
 
         textarea {
             width: 100%;
-            height: 180px;
-            background: #222227;
-            border: 1px solid #3f3f46;
+            flex-grow: 1;
+            min-height: 250px;
+            background: #0f172a;
+            border: 1px solid #334155;
             color: white;
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 16px;
-            box-sizing: border-box;
-            -webkit-appearance: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 18px;
+            resize: none;
         }
 
         input[type="file"] {
             width: 100%;
-            padding: 10px;
-            background: #222227;
-            border-radius: 10px;
+            padding: 16px;
+            background: #334155;
+            border-radius: 12px;
             color: white;
-            box-sizing: border-box;
+            font-size: 16px;
         }
 
         button {
-            width: 100%;
             background-color: var(--accent-color);
-            color: #000000;
+            color: #000;
             border: none;
-            padding: 15px;
-            font-size: 16px;
+            padding: 18px;
+            font-size: 20px;
             font-weight: bold;
-            border-radius: 12px;
+            border-radius: 14px;
             cursor: pointer;
-            transition: background 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        button:active {
-            opacity: 0.8;
-        }
-
-        audio {
             width: 100%;
-            margin-top: 15px;
         }
 
-        /* Schermata di Sincronizzazione Mobile */
+        /* 2. SYNCHRONIZATION WORKSPACE */
         #sync-workspace {
             display: none;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        /* Teleprompter (Top half) */
+        .lyrics-viewer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: #090d16;
             text-align: center;
+            font-size: 28px;
+            line-height: 2;
+            scroll-behavior: smooth;
         }
 
-        .progress {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 15px;
+        .word-token {
+            display: inline-block;
+            margin: 0 6px;
+            color: var(--text-color);
+            transition: all 0.1s ease;
         }
 
-        .word-box {
-            background: #222227;
+        .word-token.passed {
+            color: #334155;
+        }
+
+        .word-token.active {
+            color: var(--highlight-color);
+            font-weight: bold;
+            transform: scale(1.25);
+            background: rgba(234, 179, 8, 0.2);
+            border-radius: 8px;
+            padding: 4px 8px;
+        }
+
+        .line-break {
+            display: block;
+            margin-top: 20px;
+            height: 0;
+        }
+
+        /* Control panel (Bottom half) */
+        .control-panel {
+            background: var(--container-bg);
             padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            min-height: 90px;
+            border-top: 1px solid #334155;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            border: 1px solid #3f3f46;
+            gap: 15px;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
         }
 
-        .next-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
             color: var(--text-muted);
-            margin-bottom: 5px;
+            font-weight: bold;
         }
 
-        .current-word {
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--accent-color);
-            word-break: break-word;
-        }
-
-        /* Area Touch Gigante per il Pollice */
         .touch-pad {
             width: 100%;
-            height: 220px;
-            background: linear-gradient(135deg, var(--accent-color), #14b8a6);
+            height: 160px;
+            background: linear-gradient(135deg, #22c55e, #10b981);
             color: black;
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            box-shadow: 0 8px 25px rgba(48, 218, 197, 0.3);
+            font-size: 28px;
+            font-weight: 900;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
             user-select: none;
-            -webkit-user-select: none;
             touch-action: manipulation;
         }
 
         .touch-pad:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
             filter: brightness(0.9);
         }
 
-        .control-rows {
+        .button-row {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 12px;
         }
 
         .btn-secondary {
-            background-color: #222227;
+            background: #334155;
             color: white;
-            border: 1px solid #3f3f46;
-        }
-        
-        .btn-undo {
-            background-color: #271c1c;
-            color: var(--error-color);
-            border: 1px solid #451a1a;
+            padding: 15px;
+            font-size: 16px;
         }
 
-        /* Schermata Risultato */
+        .btn-undo {
+            background: #422020;
+            color: #ef4444;
+            padding: 15px;
+            font-size: 16px;
+            border: 1px solid #7f1d1d;
+        }
+
+        audio {
+            width: 100%;
+            height: 40px;
+        }
+
+        /* 3. FINAL RESULT SCREEN */
         #result-area {
             display: none;
+            padding: 24px;
+            height: 100%;
+            flex-direction: column;
+            gap: 20px;
         }
 
         pre {
-            background: #222227;
-            padding: 15px;
-            border-radius: 10px;
-            overflow-x: auto;
+            background: #0f172a;
+            padding: 16px;
+            border-radius: 12px;
+            overflow: auto;
             white-space: pre-wrap;
             font-family: monospace;
-            font-size: 13px;
-            border: 1px solid #3f3f46;
-            max-height: 250px;
-            text-align: left;
+            font-size: 15px;
+            border: 1px solid #334155;
+            flex-grow: 1;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
     <div id="setup-area">
-        <h1>LyricSyncher (Mobile)</h1>
-        <div class="input-group">
-            <label>1. Upload your song</label>
-            <input type="file" id="audio-input" accept="audio/*">
-        </div>
-        <div class="input-group">
-            <label>2. Paste your unsynchronized lyrics</label>
-            <textarea id="lyrics-input" placeholder="Incolla qui... ogni riga sarà considerata un verso diverso."></textarea>
-        </div>
-        <button id="start-sync-btn">Sync!</button>
+        <h1>Lyrics Sync (Mobile Perfect)</h1>
+        <label>Select Audio Track:</label>
+        <input type="file" id="audio-input" accept="audio/*">
+        
+        <label>Paste Lyrics (divided by lines):</label>
+        <textarea id="lyrics-input" placeholder="Paste your lyrics here..."></textarea>
+        
+        <button id="start-sync-btn">Load and Begin</button>
     </div>
 
     <div id="sync-workspace">
-        <div class="progress" id="progress-indicator">Word 0-0</div>
-        
-        <div class="word-box">
-            <div class="next-label">Touch when you hear:</div>
-            <div class="current-word" id="active-word">-</div>
-        </div>
+        <div class="lyrics-viewer" id="lyrics-viewer"></div>
 
-        <div id="touch-pad" class="touch-pad">TOUCH (SYNC)</div>
-        
-        <div class="control-rows">
-            <button id="undo-btn" class="btn-undo">↩ Undo</button>
-            <button id="skip-btn" class="btn-secondary">Skip word ➡</button>
-        </div>
+        <div class="control-panel">
+            <div class="status-bar">
+                <span id="progress-indicator">Word 0 of 0</span>
+                <span id="audio-time">00:00</span>
+            </div>
 
-        <audio id="audio-player" controls></audio>
+            <div id="touch-pad" class="touch-pad">TAP / SPACE</div>
+
+            <div class="button-row">
+                <button id="undo-btn" class="btn-undo">↩ Undo</button>
+                <button id="skip-btn" class="btn-secondary">Skip Word ➡</button>
+            </div>
+
+            <audio id="audio-player" controls></audio>
+        </div>
     </div>
 
     <div id="result-area">
-        <h1>Lyrics Sincronizzate!</h1>
+        <h1>Lyrics Synchronized!</h1>
         <pre id="output-lyrics"></pre>
-        <button id="copy-btn" style="margin-bottom: 10px;">📋 Copy text</button>
-        <button id="restart-btn" class="btn-secondary">Sync again</button>
+        <button id="copy-btn">📋 Copy to Clipboard</button>
+        <button id="restart-btn" style="background:#334155; color:white;">Start Over</button>
     </div>
-</div>
 
 <script>
     let originalLines = [];
     let wordsQueue = [];
     let currentWordIndex = 0;
     let formattedResult = "";
-    
+
     const audioInput = document.getElementById('audio-input');
     const lyricsInput = document.getElementById('lyrics-input');
     const startSyncBtn = document.getElementById('start-sync-btn');
     const setupArea = document.getElementById('setup-area');
     
     const syncWorkspace = document.getElementById('sync-workspace');
+    const lyricsViewer = document.getElementById('lyrics-viewer');
     const audioPlayer = document.getElementById('audio-player');
-    const activeWordSpan = document.getElementById('active-word');
     const progressIndicator = document.getElementById('progress-indicator');
+    const audioTime = document.getElementById('audio-time');
     const touchPad = document.getElementById('touch-pad');
     const undoBtn = document.getElementById('undo-btn');
     const skipBtn = document.getElementById('skip-btn');
@@ -272,12 +292,18 @@
         return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
     }
 
+    audioPlayer.addEventListener('timeupdate', () => {
+        const min = Math.floor(audioPlayer.currentTime / 60);
+        const sec = Math.floor(audioPlayer.currentTime % 60);
+        audioTime.textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    });
+
     startSyncBtn.addEventListener('click', () => {
         const text = lyricsInput.value.trim();
         const file = audioInput.files[0];
 
         if (!file || !text) {
-            alert("Inserisci sia il file audio che il testo!");
+            alert("Please load both audio and lyrics!");
             return;
         }
 
@@ -285,28 +311,46 @@
         originalLines = text.split('\n');
         wordsQueue = [];
         currentWordIndex = 0;
+        lyricsViewer.innerHTML = "";
+
+        let globalWordCounter = 0;
 
         originalLines.forEach((line, lineIndex) => {
             const trimmedLine = line.trim();
             if (trimmedLine === "") {
                 wordsQueue.push({ word: "", isLineStart: false, isEmptyLine: true, lineIndex });
+                const br = document.createElement('div');
+                br.className = 'line-break';
+                lyricsViewer.appendChild(br);
                 return;
             }
-            
+
             const words = trimmedLine.split(/\s+/);
             words.forEach((word, wordIndex) => {
+                const span = document.createElement('span');
+                span.className = 'word-token';
+                span.textContent = word;
+                span.id = `word-tk-${globalWordCounter}`;
+                lyricsViewer.appendChild(span);
+
                 wordsQueue.push({
                     word: word,
                     isLineStart: wordIndex === 0,
                     isEmptyLine: false,
                     lineIndex: lineIndex,
-                    timestamp: null
+                    timestamp: null,
+                    domId: `word-tk-${globalWordCounter}`
                 });
+                globalWordCounter++;
             });
+
+            const br = document.createElement('div');
+            br.className = 'line-break';
+            lyricsViewer.appendChild(br);
         });
 
         setupArea.style.display = 'none';
-        syncWorkspace.style.display = 'block';
+        syncWorkspace.style.display = 'flex';
         updateWorkspace();
     });
 
@@ -320,12 +364,23 @@
             return;
         }
 
-        const currentItem = wordsQueue[currentWordIndex];
-        activeWordSpan.textContent = currentItem.word;
-        progressIndicator.textContent = `Parola ${currentWordIndex + 1} di ${wordsQueue.length}`;
-        
-        // Disabilita undo se siamo alla prima parola
+        progressIndicator.textContent = `Word ${currentWordIndex + 1} of ${wordsQueue.length}`;
         undoBtn.disabled = currentWordIndex === 0;
+
+        wordsQueue.forEach((item, index) => {
+            if (item.isEmptyLine) return;
+            const el = document.getElementById(item.domId);
+            if (!el) return;
+
+            if (index < currentWordIndex) {
+                el.className = 'word-token passed';
+            } else if (index === currentWordIndex) {
+                el.className = 'word-token active';
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                el.className = 'word-token';
+            }
+        });
     }
 
     function handleSync() {
@@ -337,22 +392,26 @@
         updateWorkspace();
     }
 
-    // Evento ottimizzato per il touch mobile (evita il lag dei 300ms dei vecchi browser)
     touchPad.addEventListener('touchstart', (e) => {
         e.preventDefault();
         handleSync();
     });
-    // Supporto anche se testato da PC
+    
     touchPad.addEventListener('mousedown', (e) => {
         e.preventDefault();
         if (!('ontouchstart' in window)) handleSync();
     });
 
-    // Tasto ANNULLA (Torna indietro di una parola)
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && syncWorkspace.style.display === 'flex') {
+            e.preventDefault();
+            handleSync();
+        }
+    });
+
     undoBtn.addEventListener('click', () => {
         if (currentWordIndex > 0) {
             currentWordIndex--;
-            // Se incontra righe vuote nel tornare indietro, le salta
             while (currentWordIndex > 0 && wordsQueue[currentWordIndex].isEmptyLine) {
                 currentWordIndex--;
             }
@@ -361,7 +420,6 @@
         }
     });
 
-    // Tasto SALTA (Per parole che non vengono cantate)
     skipBtn.addEventListener('click', () => {
         if (currentWordIndex < wordsQueue.length) {
             wordsQueue[currentWordIndex].timestamp = currentWordIndex > 0 ? wordsQueue[currentWordIndex-1].timestamp : 0;
@@ -373,7 +431,7 @@
     function finishSynchronization() {
         audioPlayer.pause();
         syncWorkspace.style.display = 'none';
-        resultArea.style.display = 'block';
+        resultArea.style.display = 'flex';
 
         let outputText = "";
         let currentLineIndex = -1;
@@ -384,7 +442,6 @@
                 return;
             }
 
-            // Se l'utente ha saltato o non ha registrato il tempo, usa 0
             const timeStr = formatTime(item.timestamp || 0);
 
             if (item.isLineStart) {
@@ -402,15 +459,15 @@
 
     copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(formattedResult).then(() => {
-            const origText = copyBtn.textContent;
-            copyBtn.textContent = "✓ Copiato negli appunti!";
-            setTimeout(() => copyBtn.textContent = origText, 2000);
+            const orig = copyBtn.textContent;
+            copyBtn.textContent = "✓ Copied!";
+            setTimeout(() => copyBtn.textContent = orig, 2000);
         });
     });
 
     restartBtn.addEventListener('click', () => {
         resultArea.style.display = 'none';
-        setupArea.style.display = 'block';
+        setupArea.style.display = 'flex';
         lyricsInput.value = "";
         audioInput.value = "";
     });
