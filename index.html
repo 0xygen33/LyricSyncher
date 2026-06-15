@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile Word Sync</title>
+    <title>LyricSyncher</title>
     <style>
         :root {
             --bg-color: #0b0b0e;
@@ -203,31 +203,31 @@
 
 <div class="container">
     <div id="setup-area">
-        <h1>Word Sync (Mobile)</h1>
+        <h1>LyricSyncher (Mobile)</h1>
         <div class="input-group">
-            <label>1. Carica traccia musicale</label>
+            <label>1. Upload your song</label>
             <input type="file" id="audio-input" accept="audio/*">
         </div>
         <div class="input-group">
-            <label>2. Incolla il testo (diviso in versi)</label>
+            <label>2. Paste your unsynchronized lyrics</label>
             <textarea id="lyrics-input" placeholder="Incolla qui... ogni riga sarà considerata un verso diverso."></textarea>
         </div>
-        <button id="start-sync-btn">Inizia Sincronizzazione</button>
+        <button id="start-sync-btn">Sync!</button>
     </div>
 
     <div id="sync-workspace">
-        <div class="progress" id="progress-indicator">Parola 0 di 0</div>
+        <div class="progress" id="progress-indicator">Word 0-0</div>
         
         <div class="word-box">
-            <div class="next-label">Tocca quando senti:</div>
+            <div class="next-label">Touch when you hear:</div>
             <div class="current-word" id="active-word">-</div>
         </div>
 
-        <div id="touch-pad" class="touch-pad">TOCCA (SYNC)</div>
+        <div id="touch-pad" class="touch-pad">TOUCH (SYNC)</div>
         
         <div class="control-rows">
-            <button id="undo-btn" class="btn-undo">↩ Annulla</button>
-            <button id="skip-btn" class="btn-secondary">Salta Parola ➡</button>
+            <button id="undo-btn" class="btn-undo">↩ Undo</button>
+            <button id="skip-btn" class="btn-secondary">Skip word ➡</button>
         </div>
 
         <audio id="audio-player" controls></audio>
@@ -236,8 +236,8 @@
     <div id="result-area">
         <h1>Lyrics Sincronizzate!</h1>
         <pre id="output-lyrics"></pre>
-        <button id="copy-btn" style="margin-bottom: 10px;">📋 Copia Testo</button>
-        <button id="restart-btn" class="btn-secondary">Sincronizza di Nuovo</button>
+        <button id="copy-btn" style="margin-bottom: 10px;">📋 Copy text</button>
+        <button id="restart-btn" class="btn-secondary">Sync again</button>
     </div>
 </div>
 
