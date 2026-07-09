@@ -67,5 +67,125 @@ jobs:
           android {
               namespace = "com.lyricsyncher.app"
               compileSdk = 34
-              default
-              
+              defaultConfig {
+                  applicationId = "com.lyricsyncher.app"
+                  minSdk = 26
+                  targetSdk = 34
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+              buildTypes { release { isMinifyEnabled = false } }
+              compileOptions { sourceCompatibility = JavaVersion.VERSION_1_8; targetCompatibility = JavaVersion.VERSION_1_8 }
+          }
+          dependencies {
+              implementation("androidx.core:core-ktx:1.13.1")
+              implementation("androidx.activity:activity-ktx:1.9.0")
+              implementation("androidx.webkit:webkit:1.12.0")
+          }
+          EOF
+
+          cat <<'EOF' > app/src/main/res/values/colors.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="bg_color">#0B0B0E</color>
+              <color name="container_bg">#16161A</color>
+              <color name="accent_color">#30DAC5</color>
+          </resources>
+          EOF
+
+          cat <<'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:label="LyricSyncher"
+                  android:theme="@style/Theme.LyricSyncher"
+                  android:hardwareAccelerated="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize|keyboardHidden"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat <<'EOF' > app/src/main/res/values/themes.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.LyricSyncher" parent="android:Theme.Material.NoActionBar">
+                  <item name="android:windowBackground">@color/bg_color</item>
+                  <item name="android:statusBarColor">@color/bg_color</item>
+              </style>
+          </resources>
+          EOF
+
+          cat <<'EOF' > app/src/main/java/com/lyricsyncher/app/MainActivity.kt
+          package com.lyricsyncher.app
+          import android.net.Uri
+          import android.os.Bundle
+          import android.view.KeyEvent
+          import android.webkit.ValueCallback
+          import android.webkit.WebChromeClient
+          import android.webkit.WebResourceRequest
+          import android.webkit.WebResourceResponse
+          import android.webkit.WebView
+          import android.webkit.WebViewClient
+          import androidx.activity.ComponentActivity
+          import androidx.activity.result.contract.ActivityResultContracts
+          import androidx.webkit.WebViewAssetLoader
+
+          class MainActivity : ComponentActivity() {
+              private lateinit var webView: WebView
+              private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
+              private val filePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+                  fileChooserCallback?.onReceiveValue(if (uri != null) arrayOf(uri) else null)
+                  fileChooserCallback = null
+              }
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  val assetLoader = WebViewAssetLoader.Builder().addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this)).build()
+                  webView = WebView(this).apply {
+                      settings.javaScriptEnabled = true
+                      settings.domStorageEnabled = true
+                      webViewClient = object : WebViewClient() {
+                          override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? = assetLoader.shouldInterceptRequest(request.url)
+                      }
+                      webChromeClient = object : WebChromeClient() {
+                          override fun onShowFileChooser(view: WebView, filePathCallback: ValueCallback<Array<Uri>>, fileChooserParams: FileChooserParams): Boolean {
+                              fileChooserCallback = filePathCallback
+                              filePicker.launch("audio/*")
+                              return true
+                          }
+                      }
+                      loadUrl("https://appassets.androidplatform.net/assets/index.html")
+                  }
+                  setContentView(webView)
+              }
+              override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+                  if (keyCode == KeyEvent.KEYCODE_BACK && ::webView.isInitialized && webView.canGoBack()) {
+                      webView.goBack()
+                      return true
+                  }
+                  return super.onKeyDown(keyCode, event)
+              }
+          }
+          EOF
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: LyricSyncher-debug-apk
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          
