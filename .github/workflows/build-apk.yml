@@ -31,7 +31,22 @@ jobs:
 
       - name: Generate Android project files
         run: |
-          mkdir -p app/src/main/java/com/lyricsyncher/app app/src/main/res/values app/src/main/res/drawable app/src/main/res/mipmap-anydpi-v26 app/src/main/assets
+          mkdir -p app/src/main/java/com/lyricsyncher/app app/src/main/res/values app/src/main/res/drawable app/src/main/assets
+
+          # Copia l'icona personalizzata se esiste
+          if [ -f "icon.png" ]; then
+            cp icon.png app/src/main/res/drawable/ic_launcher.png
+          else
+            echo "ERRORE: Inserisci il file icon.png nella root della repository" && exit 1
+          fi
+
+          # Copia TUTTI i file web (HTML, JS, CSS) nella cartella assets per evitare l'errore 400
+          rsync -av --exclude='app' --exclude='.git' --exclude='.github' . app/src/main/assets/
+
+          # Verifica che index.html esista nella posizione corretta
+          if [ ! -f "app/src/main/assets/index.html" ]; then
+            echo "ERRORE: Il file index.html non è stato trovato nella root della repository!" && exit 1
+          fi
 
           cat <<'EOF' > settings.gradle.kts
           pluginManagement {
@@ -107,28 +122,21 @@ jobs:
           dependencies {
               implementation("androidx.core:core-ktx:1.13.1")
               implementation("androidx.activity:activity-ktx:1.9.0")
-              // WebViewAssetLoader - serves the local HTML from a secure virtual origin
-              // so navigator.clipboard.writeText() works, matching the live site.
               implementation("androidx.webkit:webkit:1.12.0")
           }
           EOF
 
           cat <<'EOF' > app/proguard-rules.pro
-          # Add project-specific ProGuard rules here.
-          # This app has no reflection-heavy libraries or WebView JS interfaces that need keep rules.
           EOF
 
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <!-- Intentionally no <uses-permission android:name="android.permission.INTERNET"/>.
-                   The app cannot reach the network even if it wanted to - fully offline by construction. -->
-
               <application
                   android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:icon="@drawable/ic_launcher"
+                  android:roundIcon="@drawable/ic_launcher"
                   android:label="@string/app_name"
                   android:theme="@style/Theme.LyricSyncher"
                   android:hardwareAccelerated="true">
@@ -151,15 +159,12 @@ jobs:
           cat <<'EOF' > app/src/main/res/values/colors.xml
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <!-- Pulled directly from the :root CSS variables in index.html -->
               <color name="bg_color">#0B0B0E</color>
               <color name="container_bg">#16161A</color>
               <color name="accent_color">#30DAC5</color>
               <color name="error_color">#FF5C5C</color>
               <color name="text_color">#FFFFFF</color>
               <color name="text_muted">#94A3B8</color>
-
-              <color name="ic_launcher_background">#0B0B0E</color>
           </resources>
           EOF
 
@@ -183,34 +188,6 @@ jobs:
           </resources>
           EOF
 
-          cat <<'EOF' > app/src/main/res/drawable/ic_launcher_foreground.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp"
-              android:height="108dp"
-              android:viewportWidth="108"
-              android:viewportHeight="108">
-              <path
-                  android:fillColor="#30DAC5"
-                  android:pathData="M34,39 L44,39 L44,69 L34,69 Z" />
-              <path
-                  android:fillColor="#30DAC5"
-                  android:pathData="M49,31 L59,31 L59,77 L49,77 Z" />
-              <path
-                  android:fillColor="#30DAC5"
-                  android:pathData="M64,43 L74,43 L74,65 L64,65 Z" />
-          </vector>
-          EOF
-
-          cat <<'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/ic_launcher_background" />
-              <foreground android:drawable="@drawable/ic_launcher_foreground" />
-          </adaptive-icon>
-          EOF
-
-          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-
           cat <<'EOF' > app/src/main/java/com/lyricsyncher/app/MainActivity.kt
           package com.lyricsyncher.app
 
@@ -227,20 +204,6 @@ jobs:
           import androidx.activity.result.contract.ActivityResultContracts
           import androidx.webkit.WebViewAssetLoader
 
-          /**
-           * Wraps the original LyricSyncher web app (app/src/main/assets/index.html) unchanged.
-           *
-           * The HTML/CSS/JS is served from a virtual https://appassets.androidplatform.net origin
-           * via WebViewAssetLoader instead of a raw file:// URL. This matters for two things the
-           * original site relies on:
-           *   1. navigator.clipboard.writeText() (the Copy button) only works in a "secure context" -
-           *      file:// doesn't count as one, https-style virtual origins do.
-           *   2. <input type="file"> needs an explicit file-chooser hookup below, or tapping it does
-           *      nothing in a WebView.
-           *
-           * No android.permission.INTERNET is declared anywhere in this project, so the app has no
-           * way to reach the network even if something tried - it is genuinely offline.
-           */
           class MainActivity : ComponentActivity() {
 
               private lateinit var webView: WebView
@@ -291,8 +254,6 @@ jobs:
                   setContentView(webView)
               }
 
-              // Lets the Android back button step back through in-page history instead of
-              // instantly closing the app - matches how you'd expect a browser tab to behave.
               override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
                   if (keyCode == KeyEvent.KEYCODE_BACK && ::webView.isInitialized && webView.canGoBack()) {
                       webView.goBack()
@@ -303,8 +264,15 @@ jobs:
           }
           EOF
 
-          cp index.html app/src/main/assets/index.html
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon
 
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: LyricSyncher-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon
 
