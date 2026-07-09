@@ -1,3 +1,5 @@
+name: Build Android APK
+
 on:
   workflow_dispatch:
   push:
@@ -24,13 +26,12 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
-
       - name: Generate Android project files
         run: |
-          mkdir -p app/src/main/java/com/lyricsyncher/app app/src/main/res/values app/src/main/res/drawable app/src/main/res/mipmap-anydpi-v26 app/src/main/assets
+          # 1. Crea la struttura delle cartelle necessaria
+          mkdir -p app/src/main/java/com/lyricsyncher/app app/src/main/res/values app/src/main/res/layout app/src/main/assets
 
+          # 2. Crea i file di configurazione radice
           cat <<'EOF' > settings.gradle.kts
           pluginManagement {
               repositories {
@@ -46,7 +47,6 @@ jobs:
                   mavenCentral()
               }
           }
-
           rootProject.name = "LyricSyncher"
           include(":app")
           EOF
@@ -57,3 +57,54 @@ jobs:
               id("org.jetbrains.kotlin.android") version "1.9.24" apply false
           }
           EOF
+
+          # 3. Crea il build.gradle.kts specifico per il modulo :app
+          cat <<'EOF' > app/build.gradle.kts
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+
+          android {
+              namespace = "com.lyricsyncher.app"
+              compileSdk = 34
+
+              defaultConfig {
+                  applicationId = "com.lyricsyncher.app"
+                  minSdk = 24
+                  targetSdk = 34
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      isMinifyEnabled = false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          EOF
+
+          # 4. Crea un file AndroidManifest.xml minimo se non esiste, altrimenti fallisce
+          cat <<'EOF' > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:label="LyricSyncher"
+                  android:theme="@android:style/Theme.Material.Light">
+              </application>
+          </manifest>
+          EOF
+
+      - name: Build Debug APK
+        run: gradle :app:assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LyricSyncher-Debug-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
