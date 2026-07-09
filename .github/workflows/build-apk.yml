@@ -28,26 +28,18 @@ jobs:
 
       - name: Generate Android project files
         run: |
-          # 1. Crea la struttura delle cartelle
           mkdir -p app/src/main/java/com/lyricsyncher/app app/src/main/res/values app/src/main/res/layout app/src/main/assets
 
-          # 2. Copia i file HTML/CSS/JS della repo dentro assets
-          cp -r * app/src/main/assets/ 2>/dev/null || true
+          # Copia in modo sicuro tutti i file della repo nella cartella assets dell'app
+          rsync -av --exclude='app' . app/src/main/assets/
 
-          # 3. Crea settings.gradle.kts
           cat <<'EOF' > settings.gradle.kts
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
           rootProject.name = "LyricSyncher"
           include(":app")
           EOF
 
-          # 4. Crea build.gradle.kts radice
           cat <<'EOF' > build.gradle.kts
           plugins {
               id("com.android.application") version "8.5.2" apply false
@@ -55,12 +47,8 @@ jobs:
           }
           EOF
 
-          # 5. Crea build.gradle.kts del modulo app
           cat <<'EOF' > app/build.gradle.kts
-          plugins {
-              id("com.android.application")
-              id("org.jetbrains.kotlin.android")
-          }
+          plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
           android {
               namespace = "com.lyricsyncher.app"
               compileSdk = 34
@@ -71,60 +59,55 @@ jobs:
                   versionCode = 1
                   versionName = "1.0"
               }
-              buildTypes {
-                  release { isMinifyEnabled = false }
-              }
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
-              }
+              buildTypes { release { isMinifyEnabled = false } }
+              compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+          }
+          dependencies {
+              implementation("androidx.appcompat:appcompat:1.6.1")
+              implementation("androidx.core:core-ktx:1.12.0")
           }
           EOF
 
-          # 6. Crea il layout con la WebView
           cat <<'EOF' > app/src/main/res/layout/activity_main.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <WebView xmlns:android="http://schemas.android.com/apk/res/android"
-              android:id="@+id/webView"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent" />
+          <WebView xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/webView" android:layout_width="match_parent" android:layout_height="match_parent" />
           EOF
 
-          # 7. Crea MainActivity.kt (Sintassi corretta in Kotlin)
           cat <<'EOF' > app/src/main/java/com/lyricsyncher/app/MainActivity.kt
           package com.lyricsyncher.app
 
+          import android.annotation.SuppressLint
           import android.os.Bundle
+          import android.webkit.WebChromeClient
           import android.webkit.WebView
           import android.webkit.WebViewClient
           import androidx.appcompat.app.AppCompatActivity
 
           class MainActivity : AppCompatActivity() {
+              @SuppressLint("SetJavaScriptEnabled")
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
                   setContentView(R.layout.activity_main)
                   
                   val webView = findViewById<WebView>(R.id.webView)
-                  webView.webViewClient = WebViewClient()
+                  
+                  // Configurazioni avanzate per far funzionare HTML/JS come nel browser
                   webView.settings.javaScriptEnabled = true
                   webView.settings.domStorageEnabled = true
+                  webView.settings.allowFileAccess = true
+                  webView.webViewClient = WebViewClient()
+                  webView.webChromeClient = WebChromeClient()
                   
                   webView.loadUrl("file:///android_asset/index.html")
               }
           }
           EOF
 
-          # 8. Crea AndroidManifest.xml
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
-              <application
-                  android:label="LyricSyncher"
-                  android:icon="@android:drawable/sym_def_app_icon"
-                  android:theme="@style/Theme.AppCompat.NoActionBar">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
+              <application android:label="LyricSyncher" android:icon="@android:drawable/sym_def_app_icon" android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -134,11 +117,8 @@ jobs:
           </manifest>
           EOF
 
-          # 9. Crea temi base
           cat <<'EOF' > app/src/main/res/values/themes.xml
-          <resources>
-              <style name="Theme.AppCompat.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar" />
-          </resources>
+          <resources><style name="Theme.AppCompat.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar" /></resources>
           EOF
 
       - name: Build Debug APK
@@ -147,6 +127,6 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LyricSyncher-WebView-APK
+          name: LyricSyncher-App
           path: app/build/outputs/apk/debug/app-debug.apk
           
