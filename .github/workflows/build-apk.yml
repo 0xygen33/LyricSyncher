@@ -28,14 +28,13 @@ jobs:
 
       - name: Generate Android project files
         run: |
-          # 1. Crea la struttura delle cartelle (inclusa assets per l'HTML)
+          # 1. Crea la struttura delle cartelle
           mkdir -p app/src/main/java/com/lyricsyncher/app app/src/main/res/values app/src/main/res/layout app/src/main/assets
 
-          # 2. Copia i tuoi file HTML/CSS/JS della repo dentro la cartella assets dell'app
-          # Assumendo che il tuo file principale si chiami index.html nella radice della repo
+          # 2. Copia i file HTML/CSS/JS della repo dentro assets
           cp -r * app/src/main/assets/ 2>/dev/null || true
 
-          # 3. Crea i file di configurazione radice
+          # 3. Crea settings.gradle.kts
           cat <<'EOF' > settings.gradle.kts
           pluginManagement {
               repositories { google(); mavenCentral(); gradlePluginPortal() }
@@ -48,6 +47,7 @@ jobs:
           include(":app")
           EOF
 
+          # 4. Crea build.gradle.kts radice
           cat <<'EOF' > build.gradle.kts
           plugins {
               id("com.android.application") version "8.5.2" apply false
@@ -55,7 +55,7 @@ jobs:
           }
           EOF
 
-          # 4. Crea il build.gradle.kts del modulo app
+          # 5. Crea build.gradle.kts del modulo app
           cat <<'EOF' > app/build.gradle.kts
           plugins {
               id("com.android.application")
@@ -81,7 +81,7 @@ jobs:
           }
           EOF
 
-          # 5. Crea il layout con la WebView a schermo intero
+          # 6. Crea il layout con la WebView
           cat <<'EOF' > app/src/main/res/layout/activity_main.xml
           <?xml version="1.0" encoding="utf-8"?>
           <WebView xmlns:android="http://schemas.android.com/apk/res/android"
@@ -90,7 +90,7 @@ jobs:
               android:layout_height="match_parent" />
           EOF
 
-          # 6. Crea il codice Java/Kotlin per l'Activity principale che apre l'HTML
+          # 7. Crea MainActivity.kt (Sintassi corretta in Kotlin)
           cat <<'EOF' > app/src/main/java/com/lyricsyncher/app/MainActivity.kt
           package com.lyricsyncher.app
 
@@ -100,7 +100,7 @@ jobs:
           import androidx.appcompat.app.AppCompatActivity
 
           class MainActivity : AppCompatActivity() {
-              override : void onCreate(savedInstanceState: Bundle?) {
+              override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
                   setContentView(R.layout.activity_main)
                   
@@ -109,13 +109,12 @@ jobs:
                   webView.settings.javaScriptEnabled = true
                   webView.settings.domStorageEnabled = true
                   
-                  // Carica il file index.html dalla cartella assets
                   webView.loadUrl("file:///android_asset/index.html")
               }
           }
           EOF
 
-          # 7. Crea il file AndroidManifest.xml corretto con l'Activity di avvio e l'icona di default
+          # 8. Crea AndroidManifest.xml
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -132,5 +131,22 @@ jobs:
                       </intent-filter>
                   </activity>
               </application>
-          </
+          </manifest>
+          EOF
+
+          # 9. Crea temi base
+          cat <<'EOF' > app/src/main/res/values/themes.xml
+          <resources>
+              <style name="Theme.AppCompat.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar" />
+          </resources>
+          EOF
+
+      - name: Build Debug APK
+        run: gradle :app:assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LyricSyncher-WebView-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
           
