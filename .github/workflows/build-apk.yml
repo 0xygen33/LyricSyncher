@@ -28,9 +28,14 @@ jobs:
 
       - name: Generate Android project files
         run: |
-          mkdir -p app/src/main/java/com/lyricsyncher/app app/src/main/res/values app/src/main/res/drawable app/src/main/res/mipmap-anydpi-v26 app/src/main/assets
+          mkdir -p app/src/main/java/com/lyricsyncher/app app/src/main/res/values app/src/main/res/drawable app/src/main/res/mipmap-anydpi-v26 app/src/main/res/mipmap app/src/main/assets
 
           if [ -f "icon.png" ]; then
+            # Immagini di fallback per far felice il compilatore
+            cp icon.png app/src/main/res/mipmap/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap/ic_launcher_round.png
+            
+            # Immagine per l'icona adattiva (senza bordo)
             cp icon.png app/src/main/res/drawable/ic_launcher_foreground.png
           else
             echo "ERRORE: Inserisci il file icon.png nella root" && exit 1
