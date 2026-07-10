@@ -100,6 +100,29 @@
             margin-top: 15px;
         }
 
+        /* Link discreto per la pagina di download */
+        .app-link-container {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #27272a;
+        }
+
+        .app-link {
+            color: var(--text-muted);
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .app-link strong {
+            color: var(--accent-color);
+        }
+
+        .app-link:hover {
+            opacity: 0.9;
+        }
+
         /* Schermata di Sincronizzazione Mobile */
         #sync-workspace {
             display: none;
@@ -173,7 +196,7 @@
             color: white;
             border: 1px solid #3f3f46;
         }
-        
+
         .btn-undo {
             background-color: #271c1c;
             color: var(--error-color);
@@ -213,18 +236,22 @@
             <textarea id="lyrics-input" placeholder="Paste here... each line will be considered a different verse."></textarea>
         </div>
         <button id="start-sync-btn">Start Synchronization</button>
+
+        <div class="app-link-container">
+            <a href="download.html" class="app-link">Looking for the Android App? <strong>Get the APK</strong></a>
+        </div>
     </div>
 
     <div id="sync-workspace">
         <div class="progress" id="progress-indicator">Word 0 of 0</div>
-        
+
         <div class="word-box">
             <div class="next-label">Tap when you hear:</div>
             <div class="current-word" id="active-word">-</div>
         </div>
 
         <div id="touch-pad" class="touch-pad">TAP (SYNC)</div>
-        
+
         <div class="control-rows">
             <button id="undo-btn" class="btn-undo">↩ Undo</button>
             <button id="skip-btn" class="btn-secondary">Skip Word ➡</button>
@@ -246,12 +273,12 @@
     let wordsQueue = [];
     let currentWordIndex = 0;
     let formattedResult = "";
-    
+
     const audioInput = document.getElementById('audio-input');
     const lyricsInput = document.getElementById('lyrics-input');
     const startSyncBtn = document.getElementById('start-sync-btn');
     const setupArea = document.getElementById('setup-area');
-    
+
     const syncWorkspace = document.getElementById('sync-workspace');
     const audioPlayer = document.getElementById('audio-player');
     const activeWordSpan = document.getElementById('active-word');
@@ -259,7 +286,7 @@
     const touchPad = document.getElementById('touch-pad');
     const undoBtn = document.getElementById('undo-btn');
     const skipBtn = document.getElementById('skip-btn');
-    
+
     const resultArea = document.getElementById('result-area');
     const outputLyrics = document.getElementById('output-lyrics');
     const copyBtn = document.getElementById('copy-btn');
@@ -292,7 +319,7 @@
                 wordsQueue.push({ word: "", isLineStart: false, isEmptyLine: true, lineIndex });
                 return;
             }
-            
+
             const words = trimmedLine.split(/\s+/);
             words.forEach((word, wordIndex) => {
                 wordsQueue.push({
@@ -323,8 +350,7 @@
         const currentItem = wordsQueue[currentWordIndex];
         activeWordSpan.textContent = currentItem.word;
         progressIndicator.textContent = `Word ${currentWordIndex + 1} of ${wordsQueue.length}`;
-        
-        // Disabilita undo se siamo alla prima parola
+
         undoBtn.disabled = currentWordIndex === 0;
     }
 
@@ -337,22 +363,18 @@
         updateWorkspace();
     }
 
-    // Evento ottimizzato per il touch mobile (evita il lag dei 300ms dei vecchi browser)
     touchPad.addEventListener('touchstart', (e) => {
         e.preventDefault();
         handleSync();
     });
-    // Supporto anche se testato da PC
     touchPad.addEventListener('mousedown', (e) => {
         e.preventDefault();
         if (!('ontouchstart' in window)) handleSync();
     });
 
-    // Tasto ANNULLA (Torna indietro di una parola)
     undoBtn.addEventListener('click', () => {
         if (currentWordIndex > 0) {
             currentWordIndex--;
-            // Se incontra righe vuote nel tornare indietro, le salta
             while (currentWordIndex > 0 && wordsQueue[currentWordIndex].isEmptyLine) {
                 currentWordIndex--;
             }
@@ -361,7 +383,6 @@
         }
     });
 
-    // Tasto SALTA (Per parole che non vengono cantate)
     skipBtn.addEventListener('click', () => {
         if (currentWordIndex < wordsQueue.length) {
             wordsQueue[currentWordIndex].timestamp = currentWordIndex > 0 ? wordsQueue[currentWordIndex-1].timestamp : 0;
@@ -384,7 +405,6 @@
                 return;
             }
 
-            // Se l'utente ha saltato o non ha registrato il tempo, usa 0
             const timeStr = formatTime(item.timestamp || 0);
 
             if (item.isLineStart) {
